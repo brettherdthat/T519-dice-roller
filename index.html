@@ -250,6 +250,205 @@
             animation: pulse 0.5s ease-in-out infinite;
         }
 
+        /* Batch Mode Animations */
+        #batchOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #batchOverlay.active {
+            opacity: 1;
+        }
+
+        /* Theme overlays */
+        .theme-electric {
+            background: radial-gradient(circle, rgba(0, 150, 255, 0.3) 0%, transparent 70%);
+        }
+
+        .theme-cosmic {
+            background: radial-gradient(circle, rgba(150, 0, 255, 0.3) 0%, transparent 70%);
+        }
+
+        .theme-fire {
+            background: radial-gradient(circle, rgba(255, 100, 0, 0.3) 0%, transparent 70%);
+        }
+
+        .theme-neon {
+            background: radial-gradient(circle, rgba(0, 255, 150, 0.3) 0%, transparent 70%);
+        }
+
+        .theme-warp {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+        }
+
+        @keyframes screenShake {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            10% {
+                transform: translate(-5px, -5px);
+            }
+
+            20% {
+                transform: translate(5px, -5px);
+            }
+
+            30% {
+                transform: translate(-5px, 5px);
+            }
+
+            40% {
+                transform: translate(5px, 5px);
+            }
+
+            50% {
+                transform: translate(-3px, -3px);
+            }
+
+            60% {
+                transform: translate(3px, -3px);
+            }
+
+            70% {
+                transform: translate(-3px, 3px);
+            }
+
+            80% {
+                transform: translate(3px, 3px);
+            }
+
+            90% {
+                transform: translate(-2px, -2px);
+            }
+        }
+
+        @keyframes particleBurst {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        @keyframes lightning {
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            10%,
+            30%,
+            50% {
+                opacity: 1;
+            }
+
+            20%,
+            40% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes rgbSplit {
+            0% {
+                text-shadow: -2px 0 red, 2px 0 cyan;
+            }
+
+            50% {
+                text-shadow: 2px 0 red, -2px 0 cyan;
+            }
+
+            100% {
+                text-shadow: -2px 0 red, 2px 0 cyan;
+            }
+        }
+
+        @keyframes speedLines {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .particle {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 250;
+        }
+
+        /* Batch button states */
+        .batch-btn.powered {
+            background: linear-gradient(90deg, #00ff00, #00ffff);
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        .batch-btn.locked {
+            background: linear-gradient(90deg, #666, #888);
+            box-shadow: none;
+            cursor: default;
+        }
+
+        .batch-btn.locked:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        #batchLockMessage {
+            position: fixed;
+            bottom: 40vh;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            color: #ff00ff;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+            z-index: 100;
+            display: none;
+        }
+
+        #batchLockMessage.visible {
+            display: block;
+        }
+
+        /* Status banner batch mode */
+        #statusBanner.batch-ready {
+            border-color: #ffff00;
+            box-shadow: 0 0 40px rgba(255, 255, 0, 0.6);
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        #statusBanner.batch-ready .status-text {
+            color: #ffff00;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
         /* Columnar Data Display */
         #dataDisplay {
             background: rgba(10, 10, 30, 0.9);
@@ -395,6 +594,10 @@
     <video id="webcam" autoplay playsinline></video>
     <canvas id="handCanvas"></canvas>
 
+    <!-- Batch Mode Overlay -->
+    <div id="batchOverlay"></div>
+    <div id="batchLockMessage">🔒 10 ROLLS LOCKED - Click button to unlock</div>
+
     <!-- UI Layer -->
     <div id="uiLayer">
         <header>
@@ -464,8 +667,104 @@
             totalSamples: 0,
             isRolling: false,
             lastThrowTime: 0,
-            cumulativeCounts: Array(13).fill(0) // Track cumulative counts for each sum (2-12)
+            cumulativeCounts: Array(13).fill(0), // Track cumulative counts for each sum (2-12)
+            // Batch mode
+            batchMode: false, // Power-up mode active
+            batchLocked: false, // After batch roll completes
+            currentScenario: 0, // Which animation theme (0-4)
+            batchRollsRemaining: 0
         };
+
+        // 5 Animation Scenarios
+        const batchScenarios = [
+            {
+                name: 'Electric Storm',
+                themeClass: 'theme-electric',
+                color: '#00aaff',
+                powerUpText: '⚡ ELECTRIC STORM ⚡',
+                rollEffects: ['⚡', '💫', '✨', '🌩️'],
+                finaleText: 'STORM COMPLETE!'
+            },
+            {
+                name: 'Cosmic Explosion',
+                themeClass: 'theme-cosmic',
+                color: '#aa00ff',
+                powerUpText: '🌌 COSMIC EXPLOSION 🌌',
+                rollEffects: ['💥', '🌟', '✨', '🔮'],
+                finaleText: 'COSMIC BURST!'
+            },
+            {
+                name: 'Fire Surge',
+                themeClass: 'theme-fire',
+                color: '#ff6600',
+                powerUpText: '🔥 FIRE SURGE 🔥',
+                rollEffects: ['🔥', '💨', '✨', '☄️'],
+                finaleText: 'BLAZING FINISH!'
+            },
+            {
+                name: 'Neon Glitch',
+                themeClass: 'theme-neon',
+                color: '#00ff88',
+                powerUpText: '💚 NEON GLITCH 💚',
+                rollEffects: ['💚', '💜', '✨', '⚡'],
+                finaleText: 'SYSTEM HACKED!'
+            },
+            {
+                name: 'Warp Speed',
+                themeClass: 'theme-warp',
+                color: '#ffffff',
+                powerUpText: '🚀 WARP SPEED 🚀',
+                rollEffects: ['🚀', '💨', '⭐', '✨'],
+                finaleText: 'LIGHTSPEED!'
+            }
+        ];
+
+        // Particle effect helper
+        function createParticle(x, y, color) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            particle.style.backgroundColor = color;
+            particle.style.boxShadow = `0 0 10px ${color}`;
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 100 + Math.random() * 200;
+            const vx = Math.cos(angle) * velocity;
+            const vy = Math.sin(angle) * velocity;
+
+            document.body.appendChild(particle);
+
+            let startTime = null;
+            function animate(time) {
+                if (!startTime) startTime = time;
+                const elapsed = (time - startTime) / 1000;
+
+                particle.style.left = (x + vx * elapsed) + 'px';
+                particle.style.top = (y + vy * elapsed + 200 * elapsed * elapsed) + 'px';
+                particle.style.opacity = Math.max(0, 1 - elapsed);
+
+                if (elapsed < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    particle.remove();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Create particle burst
+        function particleBurst(x, y, color, count = 15) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => createParticle(x, y, color), i * 20);
+            }
+        }
+
+        // Screen shake effect
+        function shakeScreen(duration = 300) {
+            document.body.style.animation = `screenShake ${duration}ms ease-out`;
+            setTimeout(() => document.body.style.animation = '', duration);
+        }
 
         // Alien Images Map
         const alienImages = [
@@ -687,7 +986,18 @@
 
                 // Update status banner based on hand states
                 if (!state.isRolling) {
-                    if (bothHandsDetected && bothCurrentlyClosed) {
+                    if (state.batchMode && bothHandsDetected && bothCurrentlyClosed) {
+                        // Batch mode ready - show special status
+                        banner.className = 'batch-ready';
+                        const scenario = state.activeScenario || batchScenarios[0];
+                        statusText.textContent = '⚡ RELEASE TO FIRE! ⚡';
+                        statusSubtext.textContent = scenario.name + ' ready!';
+                    } else if (state.batchLocked) {
+                        // Batch is locked
+                        banner.className = 'idle';
+                        statusText.textContent = '10 ROLLS LOCKED';
+                        statusSubtext.textContent = 'Click button to unlock';
+                    } else if (bothHandsDetected && bothCurrentlyClosed) {
                         // Both fists closed - ready to roll!
                         banner.className = 'ready';
                         statusText.textContent = 'READY TO ROLL';
@@ -711,42 +1021,52 @@
                     state.isRolling = true;
                     state.lastThrowTime = Date.now();
 
-                    // Show processing status
-                    banner.className = 'processing';
-                    statusText.textContent = 'LOGGING ROLL...';
-                    statusSubtext.textContent = 'Processing cosmic signals';
+                    // Check if in batch mode
+                    if (state.batchMode) {
+                        // Execute batch rolls with animations
+                        executeBatchRolls();
+                    } else if (!state.batchLocked) {
+                        // Normal single roll
+                        // Show processing status
+                        banner.className = 'processing';
+                        statusText.textContent = 'LOGGING ROLL...';
+                        statusSubtext.textContent = 'Processing cosmic signals';
 
-                    // Visual feedback
-                    const feedback = document.createElement('div');
-                    feedback.textContent = "RELEASE!";
-                    feedback.style.position = 'absolute';
-                    feedback.style.left = '50%';
-                    feedback.style.top = '30%';
-                    feedback.style.transform = 'translate(-50%, -50%)';
-                    feedback.style.color = '#00ffff';
-                    feedback.style.fontSize = '48px';
-                    feedback.style.fontWeight = 'bold';
-                    feedback.style.zIndex = '100';
-                    feedback.style.textShadow = '0 0 20px #00ffff';
-                    document.body.appendChild(feedback);
-                    setTimeout(() => feedback.remove(), 1000);
+                        // Visual feedback
+                        const feedback = document.createElement('div');
+                        feedback.textContent = "RELEASE!";
+                        feedback.style.position = 'absolute';
+                        feedback.style.left = '50%';
+                        feedback.style.top = '30%';
+                        feedback.style.transform = 'translate(-50%, -50%)';
+                        feedback.style.color = '#00ffff';
+                        feedback.style.fontSize = '48px';
+                        feedback.style.fontWeight = 'bold';
+                        feedback.style.zIndex = '100';
+                        feedback.style.textShadow = '0 0 20px #00ffff';
+                        document.body.appendChild(feedback);
+                        setTimeout(() => feedback.remove(), 1000);
 
-                    // Delay the actual roll for dramatic effect
-                    setTimeout(() => {
-                        performRoll(1);
-
-                        // Show recorded status briefly
-                        statusText.textContent = 'RECORDED!';
-                        statusSubtext.textContent = 'Data logged successfully';
-
-                        // Reset after showing success
+                        // Delay the actual roll for dramatic effect
                         setTimeout(() => {
-                            state.isRolling = false;
-                            banner.className = 'idle';
-                            statusText.textContent = 'AWAITING HANDS';
-                            statusSubtext.textContent = 'Show both hands to camera';
-                        }, 600);
-                    }, 900);
+                            performRoll(1);
+
+                            // Show recorded status briefly
+                            statusText.textContent = 'RECORDED!';
+                            statusSubtext.textContent = 'Data logged successfully';
+
+                            // Reset after showing success
+                            setTimeout(() => {
+                                state.isRolling = false;
+                                banner.className = 'idle';
+                                statusText.textContent = 'AWAITING HANDS';
+                                statusSubtext.textContent = 'Show both hands to camera';
+                            }, 600);
+                        }, 900);
+                    } else {
+                        // Batch is locked, ignore gesture
+                        state.isRolling = false;
+                    }
                 }
 
                 // Update previous states for next frame
@@ -783,10 +1103,127 @@
                 });
             });
 
-            // Batch Roll Button
+            // Batch Roll Button - Activates power-up mode
             document.getElementById('batchRollBtn').addEventListener('click', () => {
-                performRoll(10);
+                const btn = document.getElementById('batchRollBtn');
+
+                // If locked, unlock and prepare for new batch
+                if (state.batchLocked) {
+                    state.batchLocked = false;
+                    document.getElementById('batchLockMessage').classList.remove('visible');
+                    btn.classList.remove('locked');
+                }
+
+                // If already in batch mode, ignore
+                if (state.batchMode) return;
+
+                // Activate batch mode
+                state.batchMode = true;
+                state.batchRollsRemaining = 10;
+
+                // Get current scenario and rotate for next time
+                const scenario = batchScenarios[state.currentScenario];
+                state.currentScenario = (state.currentScenario + 1) % batchScenarios.length;
+
+                // Update button appearance
+                btn.classList.add('powered');
+                btn.textContent = 'BATCH READY!';
+
+                // Show power-up overlay
+                const overlay = document.getElementById('batchOverlay');
+                overlay.className = scenario.themeClass + ' active';
+
+                // Update status banner
+                const banner = document.getElementById('statusBanner');
+                const statusText = banner.querySelector('.status-text');
+                const statusSubtext = banner.querySelector('.status-subtext');
+                banner.className = 'batch-ready';
+                statusText.textContent = scenario.powerUpText;
+                statusSubtext.textContent = 'Make fists, then RELEASE to trigger!';
+
+                // Power-up visual effects
+                shakeScreen(400);
+                particleBurst(window.innerWidth / 2, window.innerHeight / 2, scenario.color, 30);
+
+                // Store scenario for use during rolls
+                state.activeScenario = scenario;
             });
+
+            // Execute batch rolls with animations
+            function executeBatchRolls() {
+                const scenario = state.activeScenario;
+                const overlay = document.getElementById('batchOverlay');
+                const banner = document.getElementById('statusBanner');
+                const statusText = banner.querySelector('.status-text');
+                const statusSubtext = banner.querySelector('.status-subtext');
+                const btn = document.getElementById('batchRollBtn');
+
+                let rollIndex = 0;
+                const totalRolls = 10;
+                const rollInterval = 350; // ms between rolls
+
+                function doNextRoll() {
+                    if (rollIndex >= totalRolls) {
+                        // Finale!
+                        shakeScreen(500);
+                        particleBurst(window.innerWidth / 2, window.innerHeight / 3, scenario.color, 50);
+
+                        statusText.textContent = scenario.finaleText;
+                        statusSubtext.textContent = '10 rolls complete!';
+
+                        setTimeout(() => {
+                            // Lock batch mode
+                            state.batchMode = false;
+                            state.batchLocked = true;
+                            state.isRolling = false;
+
+                            overlay.classList.remove('active');
+                            btn.classList.remove('powered');
+                            btn.classList.add('locked');
+                            btn.textContent = '🔓 UNLOCK 10 ROLLS';
+
+                            document.getElementById('batchLockMessage').classList.add('visible');
+
+                            banner.className = 'idle';
+                            statusText.textContent = '10 ROLLS LOCKED';
+                            statusSubtext.textContent = 'Click button to unlock';
+                        }, 1000);
+                        return;
+                    }
+
+                    // Do one roll
+                    const d1 = rollDie();
+                    const d2 = rollDie();
+                    const sum = d1 + d2;
+                    state.cumulativeCounts[sum]++;
+                    state.totalSamples++;
+
+                    updateDiceVisuals(d1, d2);
+                    updateColumnDisplay(sum);
+
+                    const resultEl = document.getElementById('rollResult');
+                    resultEl.textContent = `TOTAL: ${sum}`;
+                    resultEl.style.opacity = 1;
+
+                    // Roll effect
+                    const effectEmoji = scenario.rollEffects[rollIndex % scenario.rollEffects.length];
+                    statusText.textContent = `${effectEmoji} ROLL ${rollIndex + 1}/10 ${effectEmoji}`;
+                    statusSubtext.textContent = `Sum: ${sum}`;
+
+                    // Visual effects for this roll
+                    shakeScreen(100);
+                    const diceRect = document.getElementById('dice1').getBoundingClientRect();
+                    particleBurst(diceRect.left + 75, diceRect.top + 75, scenario.color, 8);
+
+                    rollIndex++;
+                    setTimeout(doNextRoll, rollInterval);
+                }
+
+                // Start the roll sequence
+                statusText.textContent = '🎲 ROLLING... 🎲';
+                statusSubtext.textContent = 'Processing batch...';
+                doNextRoll();
+            }
 
             // Camera
             const hands = new Hands({

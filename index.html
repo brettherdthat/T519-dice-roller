@@ -517,16 +517,65 @@
         const videoElement = document.getElementById('webcam');
         const canvasElement = document.getElementById('handCanvas');
         const canvasCtx = canvasElement.getContext('2d');
-        let previousHandY = null;
+
+        // Track hand states for open/close detection
+        let handStates = {
+            left: { wasOpen: false, isOpen: false },
+            right: { wasOpen: false, isOpen: false }
+        };
+
+        // Detect if a hand is open or closed based on finger positions
+        function isHandOpen(landmarks) {
+            // Finger tip indices: index=8, middle=12, ring=16, pinky=20
+            // Finger MCP (knuckle) indices: index=5, middle=9, ring=13, pinky=17
+            // A finger is extended if tip is further from wrist than MCP
+
+            const wrist = landmarks[0];
+            let extendedFingers = 0;
+
+            // Check each finger (excluding thumb for simplicity)
+            const fingerTips = [8, 12, 16, 20];
+            const fingerMCPs = [5, 9, 13, 17];
+
+            for (let i = 0; i < 4; i++) {
+                const tip = landmarks[fingerTips[i]];
+                const mcp = landmarks[fingerMCPs[i]];
+
+                // Calculate distance from wrist to tip and mcp
+                const tipDist = Math.sqrt(
+                    Math.pow(tip.x - wrist.x, 2) +
+                    Math.pow(tip.y - wrist.y, 2)
+                );
+                const mcpDist = Math.sqrt(
+                    Math.pow(mcp.x - wrist.x, 2) +
+                    Math.pow(mcp.y - wrist.y, 2)
+                );
+
+                // Finger is extended if tip is significantly further from wrist than MCP
+                if (tipDist > mcpDist * 1.2) {
+                    extendedFingers++;
+                }
+            }
+
+            // Hand is "open" if 3+ fingers are extended
+            return extendedFingers >= 3;
+        }
 
         function onResults(results) {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
+            // Reset current frame states
+            let leftHandOpen = null;
+            let rightHandOpen = null;
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                // Draw hands
-                for (const landmarks of results.multiHandLandmarks) {
-                    // Check if drawing_utils is loaded
+                // Process each detected hand
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const landmarks = results.multiHandLandmarks[i];
+                    const handedness = results.multiHandedness[i].label; // "Left" or "Right"
+
+                    // Draw hands
                     if (window.drawConnectors && window.drawLandmarks) {
                         drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
                             { color: '#00ffff', lineWidth: 2 });
@@ -534,51 +583,60 @@
                             { color: '#ff00ff', lineWidth: 1, radius: 3 });
                     }
 
-                    // Gesture Detection: "Throw" (Rapid upward movement)
-                    const wrist = landmarks[0];
-                    const currentY = wrist.y;
+                    // Detect open/closed state
+                    const isOpen = isHandOpen(landmarks);
 
-                    if (previousHandY !== null) {
-                        const deltaY = previousHandY - currentY; // Positive if moving UP
-
-                        // Only trigger on significant upward motion (throw gesture)
-                        // and require enough time between throws
-                        const timeSinceLastThrow = Date.now() - state.lastThrowTime;
-
-                        if (deltaY > 0.06 && !state.isRolling && timeSinceLastThrow > 1000) {
-                            state.isRolling = true;
-                            state.lastThrowTime = Date.now();
-                            performRoll(1); // Single roll on gesture
-
-                            // Visual feedback for throw
-                            const feedback = document.createElement('div');
-                            feedback.textContent = "THROW!";
-                            feedback.style.position = 'absolute';
-                            feedback.style.left = '50%';
-                            feedback.style.top = '30%';
-                            feedback.style.transform = 'translate(-50%, -50%)';
-                            feedback.style.color = '#00ffff';
-                            feedback.style.fontSize = '48px';
-                            feedback.style.fontWeight = 'bold';
-                            feedback.style.zIndex = '100';
-                            feedback.style.animation = 'floatUp 1s ease-out forwards';
-                            document.body.appendChild(feedback);
-                            setTimeout(() => feedback.remove(), 1000);
-
-                            // Keep isRolling true for longer to prevent rapid re-triggering
-                            setTimeout(() => {
-                                state.isRolling = false;
-                                previousHandY = null; // Reset tracking after roll completes
-                            }, 800);
-                        }
-                    }
-                    // Only update previousHandY if we're not in a rolling state
-                    if (!state.isRolling) {
-                        previousHandY = currentY;
+                    if (handedness === 'Left') {
+                        leftHandOpen = isOpen;
+                    } else {
+                        rightHandOpen = isOpen;
                     }
                 }
+
+                // Check for the "release" gesture: both hands go from closed to open
+                const bothHandsDetected = leftHandOpen !== null && rightHandOpen !== null;
+                const bothWereClosed = !handStates.left.wasOpen && !handStates.right.wasOpen;
+                const bothNowOpen = leftHandOpen === true && rightHandOpen === true;
+                const timeSinceLastThrow = Date.now() - state.lastThrowTime;
+
+                if (bothHandsDetected && bothWereClosed && bothNowOpen &&
+                    !state.isRolling && timeSinceLastThrow > 1000) {
+
+                    state.isRolling = true;
+                    state.lastThrowTime = Date.now();
+                    performRoll(1);
+
+                    // Visual feedback
+                    const feedback = document.createElement('div');
+                    feedback.textContent = "RELEASE!";
+                    feedback.style.position = 'absolute';
+                    feedback.style.left = '50%';
+                    feedback.style.top = '30%';
+                    feedback.style.transform = 'translate(-50%, -50%)';
+                    feedback.style.color = '#00ffff';
+                    feedback.style.fontSize = '48px';
+                    feedback.style.fontWeight = 'bold';
+                    feedback.style.zIndex = '100';
+                    feedback.style.textShadow = '0 0 20px #00ffff';
+                    document.body.appendChild(feedback);
+                    setTimeout(() => feedback.remove(), 1000);
+
+                    setTimeout(() => {
+                        state.isRolling = false;
+                    }, 800);
+                }
+
+                // Update previous states for next frame
+                if (leftHandOpen !== null) {
+                    handStates.left.wasOpen = leftHandOpen;
+                }
+                if (rightHandOpen !== null) {
+                    handStates.right.wasOpen = rightHandOpen;
+                }
             } else {
-                previousHandY = null;
+                // No hands detected - reset states
+                handStates.left.wasOpen = false;
+                handStates.right.wasOpen = false;
             }
             canvasCtx.restore();
         }

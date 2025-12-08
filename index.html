@@ -175,6 +175,81 @@
             height: 30px;
         }
 
+        /* Status Banner */
+        #statusBanner {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            background: rgba(10, 10, 30, 0.95);
+            border: 2px solid #4a4a8a;
+            border-radius: 15px;
+            padding: 15px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(74, 74, 138, 0.5);
+            transition: all 0.3s ease;
+            min-width: 350px;
+        }
+
+        #statusBanner.ready {
+            border-color: #00ff00;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+        }
+
+        #statusBanner.ready .status-text {
+            color: #00ff00;
+        }
+
+        #statusBanner.processing {
+            border-color: #ff00ff;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
+        }
+
+        #statusBanner.processing .status-text {
+            color: #ff00ff;
+        }
+
+        #statusBanner.idle {
+            border-color: #4a4a8a;
+        }
+
+        #statusBanner.idle .status-text {
+            color: #aaaaff;
+        }
+
+        .status-text {
+            margin: 0;
+            letter-spacing: 2px;
+        }
+
+        .status-subtext {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        #statusBanner.processing .status-text {
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+
         /* Columnar Data Display */
         #dataDisplay {
             background: rgba(10, 10, 30, 0.9);
@@ -338,6 +413,12 @@
                     Waves</button>
             </div>
         </header>
+
+        <!-- Status Banner -->
+        <div id="statusBanner" class="idle">
+            <div class="status-text">AWAITING HANDS</div>
+            <div class="status-subtext">Show both hands to camera</div>
+        </div>
 
         <div id="centerDisplay">
             <div class="dice-container">
@@ -597,14 +678,43 @@
                 const bothHandsDetected = leftHandOpen !== null && rightHandOpen !== null;
                 const bothWereClosed = !handStates.left.wasOpen && !handStates.right.wasOpen;
                 const bothNowOpen = leftHandOpen === true && rightHandOpen === true;
+                const bothCurrentlyClosed = leftHandOpen === false && rightHandOpen === false;
                 const timeSinceLastThrow = Date.now() - state.lastThrowTime;
+                
+                const banner = document.getElementById('statusBanner');
+                const statusText = banner.querySelector('.status-text');
+                const statusSubtext = banner.querySelector('.status-subtext');
+
+                // Update status banner based on hand states
+                if (!state.isRolling) {
+                    if (bothHandsDetected && bothCurrentlyClosed) {
+                        // Both fists closed - ready to roll!
+                        banner.className = 'ready';
+                        statusText.textContent = 'READY TO ROLL';
+                        statusSubtext.textContent = 'Open both hands to release dice';
+                    } else if (bothHandsDetected) {
+                        // Both hands visible but not both closed
+                        banner.className = 'idle';
+                        statusText.textContent = 'MAKE FISTS';
+                        statusSubtext.textContent = 'Close both hands to prepare';
+                    } else {
+                        // Missing one or both hands
+                        banner.className = 'idle';
+                        statusText.textContent = 'AWAITING HANDS';
+                        statusSubtext.textContent = 'Show both hands to camera';
+                    }
+                }
 
                 if (bothHandsDetected && bothWereClosed && bothNowOpen &&
-                    !state.isRolling && timeSinceLastThrow > 1000) {
+                    !state.isRolling && timeSinceLastThrow > 1500) {
 
                     state.isRolling = true;
                     state.lastThrowTime = Date.now();
-                    performRoll(1);
+
+                    // Show processing status
+                    banner.className = 'processing';
+                    statusText.textContent = 'LOGGING ROLL...';
+                    statusSubtext.textContent = 'Processing cosmic signals';
 
                     // Visual feedback
                     const feedback = document.createElement('div');
@@ -621,9 +731,22 @@
                     document.body.appendChild(feedback);
                     setTimeout(() => feedback.remove(), 1000);
 
+                    // Delay the actual roll for dramatic effect
                     setTimeout(() => {
-                        state.isRolling = false;
-                    }, 800);
+                        performRoll(1);
+                        
+                        // Show recorded status briefly
+                        statusText.textContent = 'RECORDED!';
+                        statusSubtext.textContent = 'Data logged successfully';
+                        
+                        // Reset after showing success
+                        setTimeout(() => {
+                            state.isRolling = false;
+                            banner.className = 'idle';
+                            statusText.textContent = 'AWAITING HANDS';
+                            statusSubtext.textContent = 'Show both hands to camera';
+                        }, 600);
+                    }, 900);
                 }
 
                 // Update previous states for next frame

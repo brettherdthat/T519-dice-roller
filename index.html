@@ -113,7 +113,7 @@
         /* Center Display (Dice) */
         #centerDisplay {
             position: absolute;
-            top: 40%;
+            top: 52%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
@@ -680,7 +680,7 @@
                 const bothNowOpen = leftHandOpen === true && rightHandOpen === true;
                 const bothCurrentlyClosed = leftHandOpen === false && rightHandOpen === false;
                 const timeSinceLastThrow = Date.now() - state.lastThrowTime;
-                
+
                 const banner = document.getElementById('statusBanner');
                 const statusText = banner.querySelector('.status-text');
                 const statusSubtext = banner.querySelector('.status-subtext');
@@ -734,11 +734,11 @@
                     // Delay the actual roll for dramatic effect
                     setTimeout(() => {
                         performRoll(1);
-                        
+
                         // Show recorded status briefly
                         statusText.textContent = 'RECORDED!';
                         statusSubtext.textContent = 'Data logged successfully';
-                        
+
                         // Reset after showing success
                         setTimeout(() => {
                             state.isRolling = false;

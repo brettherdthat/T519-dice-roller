@@ -925,8 +925,10 @@
             lastThrowTime: 0,
             cumulativeCounts: Array(13).fill(0), // Track cumulative counts for each sum (2-12)
             currentScenario: 0, // Which animation theme (0-4, rotates)
-            // Guessing game (Energy Surge mode)
-            secretLoadedValue: null, // 1-6, set when entering surge mode
+            // Guessing game
+            secretLoadedValue: null, // 1-6, for Energy Surge (die is loaded)
+            secretMissingValue: null, // 1-6, for Signal Blackout (one die missing a side)
+            currentGuessMode: null, // 'surge' or 'blackout'
             guessesRemaining: 2,
             gameOver: false
         };
@@ -1035,29 +1037,60 @@
 
         // --- Probability Logic ---
         function rollDie() {
-            const r = Math.random();
+            // Normal die roll
+            return Math.floor(Math.random() * 6) + 1;
+        }
 
-            if (state.mode === 'normal') {
-                return Math.floor(Math.random() * 6) + 1;
-            }
-            else if (state.mode === 'surge') {
-                // Weighted towards 4, 5, 6
-                if (r < 0.2) return 1 + Math.floor(Math.random() * 3); // 20% chance for 1-3
-                return 4 + Math.floor(Math.random() * 3); // 80% chance for 4-6
-            }
-            else if (state.mode === 'blackout') {
-                // Weighted towards 1, 2, 3
-                if (r < 0.8) return 1 + Math.floor(Math.random() * 3); // 80% chance for 1-3
-                return 4 + Math.floor(Math.random() * 3); // 20% chance for 4-6
-            }
-            else if (state.mode === 'scrambled') {
-                // Chaos: Sometimes normal, sometimes inverted, sometimes fixed
-                const chaos = Math.random();
-                if (chaos < 0.3) return 6; // High chance of 6
-                if (chaos < 0.6) return 1; // High chance of 1
-                return Math.floor(Math.random() * 6) + 1;
+        // Roll die for surge mode (loaded to favor one number)
+        function rollDieSurge() {
+            if (state.secretLoadedValue && Math.random() < 0.6) {
+                // 60% chance to roll the loaded value
+                return state.secretLoadedValue;
             }
             return Math.floor(Math.random() * 6) + 1;
+        }
+
+        // Roll die with a missing side (blackout mode)
+        function rollDieBlackout() {
+            if (!state.secretMissingValue) return rollDie();
+
+            // Generate random 1-5, then map to exclude the missing value
+            let result = Math.floor(Math.random() * 5) + 1;
+            if (result >= state.secretMissingValue) {
+                result++; // Skip the missing number
+            }
+            return result;
+        }
+
+        // Roll a die pair based on current mode
+        function rollDicePair() {
+            let d1, d2;
+
+            if (state.mode === 'surge') {
+                // Both dice are loaded
+                d1 = rollDieSurge();
+                d2 = rollDieSurge();
+            } else if (state.mode === 'blackout') {
+                // One die is normal, one is missing a side
+                d1 = rollDie();
+                d2 = rollDieBlackout();
+            } else if (state.mode === 'scrambled') {
+                // Chaos mode - keep existing behavior
+                const r = Math.random();
+                if (r < 0.3) {
+                    d1 = 6; d2 = 6;
+                } else if (r < 0.6) {
+                    d1 = 1; d2 = 1;
+                } else {
+                    d1 = rollDie(); d2 = rollDie();
+                }
+            } else {
+                // Normal mode
+                d1 = rollDie();
+                d2 = rollDie();
+            }
+
+            return [d1, d2];
         }
 
         function performRoll(batchSize = 1) {
@@ -1065,8 +1098,7 @@
             let d1 = 1, d2 = 1;
 
             for (let i = 0; i < batchSize; i++) {
-                d1 = rollDie();
-                d2 = rollDie();
+                [d1, d2] = rollDicePair();
                 const sum = d1 + d2;
                 state.cumulativeCounts[sum]++;
                 state.totalSamples++;
@@ -1328,12 +1360,27 @@
                 btn.addEventListener('click', (e) => {
                     const newMode = e.target.dataset.mode;
 
-                    // If clicking Energy Surge, show explanation modal
-                    if (newMode === 'surge') {
+                    // If clicking Energy Surge or Signal Blackout, show explanation modal
+                    if (newMode === 'surge' || newMode === 'blackout') {
                         // Set up the game
-                        state.secretLoadedValue = Math.floor(Math.random() * 6) + 1;
                         state.guessesRemaining = 2;
                         state.gameOver = false;
+                        state.currentGuessMode = newMode;
+
+                        const modalTitle = document.getElementById('modalTitle');
+                        const modalText = document.getElementById('modalText');
+
+                        if (newMode === 'surge') {
+                            state.secretLoadedValue = Math.floor(Math.random() * 6) + 1;
+                            state.secretMissingValue = null;
+                            modalTitle.textContent = '⚡ Energy Surge';
+                            modalText.textContent = 'The cosmic signal is amplifying one number! Roll the dice and observe the data. Can you figure out which number appears more often?';
+                        } else {
+                            state.secretMissingValue = Math.floor(Math.random() * 6) + 1;
+                            state.secretLoadedValue = null;
+                            modalTitle.textContent = '📡 Signal Blackout';
+                            modalText.textContent = 'One die is damaged - a side has been filed off! Roll the dice and observe. Can you figure out which number is MISSING from the damaged die?';
+                        }
 
                         // Show modal
                         document.getElementById('modeModal').classList.add('visible');
@@ -1349,7 +1396,7 @@
                 });
             });
 
-            // Apply mode change (used after modal or for non-surge modes)
+            // Apply mode change (used after modal or for non-guess modes)
             function applyModeChange(btn, mode) {
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -1360,12 +1407,23 @@
                 document.getElementById('totalSamples').textContent = '0';
                 updateColumnDisplay();
 
-                // Show/hide guess panel
-                if (mode === 'surge') {
-                    document.getElementById('guessPanel').classList.add('visible');
+                // Show/hide guess panel for guessing game modes
+                const guessPanel = document.getElementById('guessPanel');
+                const pickerTitle = document.querySelector('.picker-content h3');
+
+                if (mode === 'surge' || mode === 'blackout') {
+                    guessPanel.classList.add('visible');
                     document.getElementById('guessRemaining').textContent = '2 guesses remaining';
+
+                    // Update picker title based on mode
+                    if (mode === 'surge') {
+                        pickerTitle.textContent = 'Which number is the die LOADED to?';
+                    } else {
+                        pickerTitle.textContent = 'Which number is MISSING from the die?';
+                    }
                 } else {
-                    document.getElementById('guessPanel').classList.remove('visible');
+                    guessPanel.classList.remove('visible');
+                    state.currentGuessMode = null;
                 }
             }
 
@@ -1401,11 +1459,21 @@
                     const resultTitle = document.getElementById('resultTitle');
                     const resultText = document.getElementById('resultText');
 
-                    if (guess === state.secretLoadedValue) {
+                    // Determine the correct answer based on mode
+                    const correctValue = state.currentGuessMode === 'surge'
+                        ? state.secretLoadedValue
+                        : state.secretMissingValue;
+                    const isCorrect = guess === correctValue;
+
+                    const modeDescription = state.currentGuessMode === 'surge'
+                        ? `loaded to ${correctValue}`
+                        : `missing ${correctValue}`;
+
+                    if (isCorrect) {
                         // Correct!
                         result.className = 'visible correct';
                         resultTitle.textContent = '🎉 CORRECT!';
-                        resultText.textContent = `The die was loaded to ${guess}! You figured it out in ${state.totalSamples} rolls with ${2 - state.guessesRemaining + 1} guess(es)!`;
+                        resultText.textContent = `The die was ${modeDescription}! You figured it out in ${state.totalSamples} rolls with ${2 - state.guessesRemaining + 1} guess(es)!`;
                         state.gameOver = true;
                     } else {
                         // Wrong
@@ -1415,12 +1483,13 @@
                         if (state.guessesRemaining === 0) {
                             result.className = 'visible wrong';
                             resultTitle.textContent = '❌ GAME OVER';
-                            resultText.textContent = `The die was loaded to ${state.secretLoadedValue}. Better luck next time!`;
+                            resultText.textContent = `The die was ${modeDescription}. Better luck next time!`;
                             state.gameOver = true;
                         } else {
                             result.className = 'visible wrong';
                             resultTitle.textContent = '❌ NOT QUITE!';
-                            resultText.textContent = `${guess} is not the loaded number. You have ${state.guessesRemaining} guess remaining. Keep rolling!`;
+                            const guessType = state.currentGuessMode === 'surge' ? 'loaded' : 'missing';
+                            resultText.textContent = `${guess} is not the ${guessType} number. You have ${state.guessesRemaining} guess remaining. Keep rolling!`;
                         }
                     }
 

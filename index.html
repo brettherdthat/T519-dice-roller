@@ -445,6 +445,222 @@
             color: #ffff00;
         }
 
+        /* Mode Explanation Modal */
+        #modeModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #modeModal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(10, 10, 40, 0.98);
+            border: 2px solid #ff00ff;
+            border-radius: 20px;
+            padding: 30px 40px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.4);
+        }
+
+        .modal-content h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff00ff;
+            font-size: 28px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+        }
+
+        .modal-content p {
+            font-size: 18px;
+            color: #ddd;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-btn {
+            background: linear-gradient(90deg, #ff00ff, #00ffff);
+            border: none;
+            color: #050510;
+            padding: 12px 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .modal-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Take a Guess UI */
+        #guessPanel {
+            position: fixed;
+            top: 20px;
+            right: 250px;
+            z-index: 50;
+            display: none;
+        }
+
+        #guessPanel.visible {
+            display: block;
+        }
+
+        .guess-btn {
+            background: linear-gradient(90deg, #ff00ff, #ff6600);
+            border: none;
+            color: #fff;
+            padding: 12px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+            transition: all 0.2s;
+        }
+
+        .guess-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
+        }
+
+        .guess-remaining {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        /* Number Picker Modal */
+        #guessPicker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 400;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #guessPicker.visible {
+            display: flex;
+        }
+
+        .picker-content {
+            background: rgba(10, 10, 40, 0.98);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .picker-content h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffff;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .number-btn {
+            width: 70px;
+            height: 70px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #4a4a8a;
+            color: #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .number-btn:hover {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: #00ffff;
+            transform: scale(1.1);
+        }
+
+        .picker-cancel {
+            background: transparent;
+            border: 1px solid #666;
+            color: #888;
+            padding: 8px 20px;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        /* Guess Result Message */
+        #guessResult {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 20px;
+            padding: 40px 50px;
+            text-align: center;
+            display: none;
+        }
+
+        #guessResult.visible {
+            display: block;
+        }
+
+        #guessResult.correct {
+            border: 3px solid #00ff00;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+        }
+
+        #guessResult.wrong {
+            border: 3px solid #ff4444;
+            box-shadow: 0 0 50px rgba(255, 68, 68, 0.5);
+        }
+
+        #guessResult h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        #guessResult.correct h2 {
+            color: #00ff00;
+        }
+
+        #guessResult.wrong h2 {
+            color: #ff4444;
+        }
+
+        #guessResult p {
+            font-size: 18px;
+            color: #ddd;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -598,6 +814,46 @@
     <div id="batchOverlay"></div>
     <div id="batchLockMessage">🔒 10 ROLLS LOCKED - Click button to unlock</div>
 
+    <!-- Mode Explanation Modal -->
+    <div id="modeModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Energy Surge</h2>
+            <p id="modalText">The cosmic signal is amplifying one number! Roll the dice and observe the data. Can you
+                figure out which number appears more often?</p>
+            <p><strong>You have 2 guesses!</strong></p>
+            <button class="modal-btn" id="modalConfirm">LET'S GO!</button>
+        </div>
+    </div>
+
+    <!-- Guess Panel -->
+    <div id="guessPanel">
+        <button class="guess-btn" id="takeGuessBtn">🎯 TAKE A GUESS</button>
+        <div class="guess-remaining" id="guessRemaining">2 guesses remaining</div>
+    </div>
+
+    <!-- Number Picker -->
+    <div id="guessPicker">
+        <div class="picker-content">
+            <h3>Which number is the die loaded to?</h3>
+            <div class="number-grid">
+                <button class="number-btn" data-value="1">1</button>
+                <button class="number-btn" data-value="2">2</button>
+                <button class="number-btn" data-value="3">3</button>
+                <button class="number-btn" data-value="4">4</button>
+                <button class="number-btn" data-value="5">5</button>
+                <button class="number-btn" data-value="6">6</button>
+            </div>
+            <button class="picker-cancel" id="pickerCancel">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Guess Result -->
+    <div id="guessResult">
+        <h2 id="resultTitle">🎉 CORRECT!</h2>
+        <p id="resultText">You figured it out in 15 rolls!</p>
+        <button class="modal-btn" id="resultClose" style="margin-top: 20px;">CONTINUE</button>
+    </div>
+
     <!-- UI Layer -->
     <div id="uiLayer">
         <header>
@@ -668,7 +924,11 @@
             isRolling: false,
             lastThrowTime: 0,
             cumulativeCounts: Array(13).fill(0), // Track cumulative counts for each sum (2-12)
-            currentScenario: 0 // Which animation theme (0-4, rotates)
+            currentScenario: 0, // Which animation theme (0-4, rotates)
+            // Guessing game (Energy Surge mode)
+            secretLoadedValue: null, // 1-6, set when entering surge mode
+            guessesRemaining: 2,
+            gameOver: false
         };
 
         // 5 Animation Scenarios
@@ -1066,16 +1326,118 @@
             // Mode Buttons
             document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    state.mode = e.target.dataset.mode;
+                    const newMode = e.target.dataset.mode;
 
-                    state.totalSamples = 0;
-                    state.cumulativeCounts = Array(13).fill(0);
-                    document.getElementById('totalSamples').textContent = '0';
-                    // Reset columns to 0
-                    updateColumnDisplay();
+                    // If clicking Energy Surge, show explanation modal
+                    if (newMode === 'surge') {
+                        // Set up the game
+                        state.secretLoadedValue = Math.floor(Math.random() * 6) + 1;
+                        state.guessesRemaining = 2;
+                        state.gameOver = false;
+
+                        // Show modal
+                        document.getElementById('modeModal').classList.add('visible');
+
+                        // Store pending mode change
+                        state.pendingMode = newMode;
+                        state.pendingButton = e.target;
+                        return; // Don't change mode yet
+                    }
+
+                    // Normal mode change
+                    applyModeChange(e.target, newMode);
                 });
+            });
+
+            // Apply mode change (used after modal or for non-surge modes)
+            function applyModeChange(btn, mode) {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.mode = mode;
+
+                state.totalSamples = 0;
+                state.cumulativeCounts = Array(13).fill(0);
+                document.getElementById('totalSamples').textContent = '0';
+                updateColumnDisplay();
+
+                // Show/hide guess panel
+                if (mode === 'surge') {
+                    document.getElementById('guessPanel').classList.add('visible');
+                    document.getElementById('guessRemaining').textContent = '2 guesses remaining';
+                } else {
+                    document.getElementById('guessPanel').classList.remove('visible');
+                }
+            }
+
+            // Modal confirm button
+            document.getElementById('modalConfirm').addEventListener('click', () => {
+                document.getElementById('modeModal').classList.remove('visible');
+                if (state.pendingMode && state.pendingButton) {
+                    applyModeChange(state.pendingButton, state.pendingMode);
+                    state.pendingMode = null;
+                    state.pendingButton = null;
+                }
+            });
+
+            // Take a Guess button
+            document.getElementById('takeGuessBtn').addEventListener('click', () => {
+                if (state.guessesRemaining > 0 && !state.gameOver) {
+                    document.getElementById('guessPicker').classList.add('visible');
+                }
+            });
+
+            // Cancel picker
+            document.getElementById('pickerCancel').addEventListener('click', () => {
+                document.getElementById('guessPicker').classList.remove('visible');
+            });
+
+            // Number buttons in picker
+            document.querySelectorAll('.number-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const guess = parseInt(e.target.dataset.value);
+                    document.getElementById('guessPicker').classList.remove('visible');
+
+                    const result = document.getElementById('guessResult');
+                    const resultTitle = document.getElementById('resultTitle');
+                    const resultText = document.getElementById('resultText');
+
+                    if (guess === state.secretLoadedValue) {
+                        // Correct!
+                        result.className = 'visible correct';
+                        resultTitle.textContent = '🎉 CORRECT!';
+                        resultText.textContent = `The die was loaded to ${guess}! You figured it out in ${state.totalSamples} rolls with ${2 - state.guessesRemaining + 1} guess(es)!`;
+                        state.gameOver = true;
+                    } else {
+                        // Wrong
+                        state.guessesRemaining--;
+                        document.getElementById('guessRemaining').textContent = `${state.guessesRemaining} guess${state.guessesRemaining !== 1 ? 'es' : ''} remaining`;
+
+                        if (state.guessesRemaining === 0) {
+                            result.className = 'visible wrong';
+                            resultTitle.textContent = '❌ GAME OVER';
+                            resultText.textContent = `The die was loaded to ${state.secretLoadedValue}. Better luck next time!`;
+                            state.gameOver = true;
+                        } else {
+                            result.className = 'visible wrong';
+                            resultTitle.textContent = '❌ NOT QUITE!';
+                            resultText.textContent = `${guess} is not the loaded number. You have ${state.guessesRemaining} guess remaining. Keep rolling!`;
+                        }
+                    }
+
+                    result.classList.add('visible');
+                });
+            });
+
+            // Result close button
+            document.getElementById('resultClose').addEventListener('click', () => {
+                document.getElementById('guessResult').classList.remove('visible');
+                document.getElementById('guessResult').classList.remove('correct');
+                document.getElementById('guessResult').classList.remove('wrong');
+
+                if (state.gameOver) {
+                    // Hide guess panel when game is over
+                    document.getElementById('guessPanel').classList.remove('visible');
+                }
             });
 
             // Batch Roll Button - Immediately executes animated 10 rolls

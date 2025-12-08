@@ -382,7 +382,8 @@
             mode: 'normal', // normal, surge, blackout, scrambled
             totalSamples: 0,
             isRolling: false,
-            lastThrowTime: 0
+            lastThrowTime: 0,
+            cumulativeCounts: Array(13).fill(0) // Track cumulative counts for each sum (2-12)
         };
 
         // Alien Images Map
@@ -427,21 +428,18 @@
             let lastSum = 0;
             let d1 = 1, d2 = 1;
 
-            // Track counts for this batch only
-            const batchCounts = Array(13).fill(0);
-
             for (let i = 0; i < batchSize; i++) {
                 d1 = rollDie();
                 d2 = rollDie();
                 const sum = d1 + d2;
-                batchCounts[sum]++;
+                state.cumulativeCounts[sum]++;
                 state.totalSamples++;
                 lastSum = sum;
             }
 
             // Update UI with the last roll of the batch
             updateDiceVisuals(d1, d2);
-            updateColumnDisplay(batchCounts);
+            updateColumnDisplay(lastSum);
 
             const resultEl = document.getElementById('rollResult');
             resultEl.textContent = `TOTAL: ${lastSum}`;
@@ -496,21 +494,21 @@
             }
         }
 
-        function updateColumnDisplay(batchCounts) {
+        function updateColumnDisplay(lastSum = null) {
             document.getElementById('totalSamples').textContent = state.totalSamples;
 
             for (let i = 2; i <= 12; i++) {
                 const countEl = document.getElementById(`col-count-${i}`);
-                const count = batchCounts[i];
+                const count = state.cumulativeCounts[i];
                 countEl.textContent = count;
 
-                // Highlight non-zero counts
-                if (count > 0) {
+                // Highlight the last rolled sum, otherwise show non-zero counts in cyan
+                if (i === lastSum) {
                     countEl.classList.add('active');
                     countEl.style.color = '#ff00ff';
                 } else {
                     countEl.classList.remove('active');
-                    countEl.style.color = '#00ffff';
+                    countEl.style.color = count > 0 ? '#00ffff' : '#4a4a8a';
                 }
             }
         }
@@ -543,11 +541,11 @@
                     if (previousHandY !== null) {
                         const deltaY = previousHandY - currentY; // Positive if moving UP
 
-                        // Debug log (optional, remove in prod)
-                        // console.log("DeltaY:", deltaY);
+                        // Only trigger on significant upward motion (throw gesture)
+                        // and require enough time between throws
+                        const timeSinceLastThrow = Date.now() - state.lastThrowTime;
 
-                        // Threshold for throw (Lowered slightly to 0.05 for easier triggering)
-                        if (deltaY > 0.05 && !state.isRolling && (Date.now() - state.lastThrowTime > 800)) {
+                        if (deltaY > 0.06 && !state.isRolling && timeSinceLastThrow > 1000) {
                             state.isRolling = true;
                             state.lastThrowTime = Date.now();
                             performRoll(1); // Single roll on gesture
@@ -567,10 +565,17 @@
                             document.body.appendChild(feedback);
                             setTimeout(() => feedback.remove(), 1000);
 
-                            setTimeout(() => state.isRolling = false, 500);
+                            // Keep isRolling true for longer to prevent rapid re-triggering
+                            setTimeout(() => {
+                                state.isRolling = false;
+                                previousHandY = null; // Reset tracking after roll completes
+                            }, 800);
                         }
                     }
-                    previousHandY = currentY;
+                    // Only update previousHandY if we're not in a rolling state
+                    if (!state.isRolling) {
+                        previousHandY = currentY;
+                    }
                 }
             } else {
                 previousHandY = null;
@@ -590,9 +595,10 @@
                     state.mode = e.target.dataset.mode;
 
                     state.totalSamples = 0;
+                    state.cumulativeCounts = Array(13).fill(0);
                     document.getElementById('totalSamples').textContent = '0';
                     // Reset columns to 0
-                    updateColumnDisplay(Array(13).fill(0));
+                    updateColumnDisplay();
                 });
             });
 
